@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="theme-color" content="#101812">
+	<title>DIRTLINE — Ride the wild</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+	<style>
+		:root {
+			color-scheme: dark;
+			--ink: #f0f3e9;
+			--muted: #9aa79a;
+			--panel: #18221b;
+			--line: #354138;
+			--lime: #d7ff5f;
+			--orange: #ff744f;
+			--canvas-height: min(67vh, 640px);
+		}
+
+		* { box-sizing: border-box; }
+
+		body {
+			min-width: 320px;
+			min-height: 100vh;
+			margin: 0;
+			background: #101812;
+			color: var(--ink);
+			font-family: "DM Sans", sans-serif;
+		}
+
+		button { font: inherit; }
+
+		.app {
+			width: min(1320px, calc(100% - 64px));
+			margin: 0 auto;
+			padding: 26px 0 30px;
+		}
+
+		.topbar, .brand, .top-actions, .game-toolbar, .toolbar-group, .readout, .controls, .control-item {
+			display: flex;
+			align-items: center;
+		}
+
+		.topbar { justify-content: space-between; min-height: 42px; margin-bottom: 27px; }
+		.brand { gap: 12px; text-decoration: none; color: var(--ink); }
+
+		.brand-mark {
+			display: grid;
+			width: 34px;
+			aspect-ratio: 1;
+			place-items: center;
+			border: 1px solid var(--lime);
+			color: var(--lime);
+			font-size: 19px;
+			transform: rotate(-8deg);
+		}
+
+		.brand-name { font: 800 17px/1 "Barlow Condensed", sans-serif; letter-spacing: 1px; }
+		.brand-name span { color: var(--lime); }
+		.top-actions { gap: 10px; }
+
+		.status {
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			color: var(--muted);
+			font-size: 11px;
+			letter-spacing: .5px;
+			text-transform: uppercase;
+		}
+
+		.status::before {
+			width: 7px;
+			height: 7px;
+			border-radius: 50%;
+			background: var(--lime);
+			content: "";
+			box-shadow: 0 0 12px #d7ff5f66;
+		}
+
+		.icon-button {
+			display: grid;
+			width: 38px;
+			height: 38px;
+			place-items: center;
+			border: 1px solid var(--line);
+			border-radius: 3px;
+			background: transparent;
+			color: var(--ink);
+			cursor: pointer;
+			font-size: 17px;
+			transition: border-color .2s, color .2s;
+		}
+
+		.icon-button:hover { border-color: var(--lime); color: var(--lime); }
+
+		.intro {
+			display: flex;
+			align-items: end;
+			justify-content: space-between;
+			gap: 24px;
+			margin-bottom: 19px;
+		}
+
+		.eyebrow { margin: 0 0 6px; color: var(--lime); font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+		h1 { margin: 0; font: 900 clamp(34px, 5vw, 58px)/.88 "Barlow Condensed", sans-serif; letter-spacing: .2px; }
+		h1 span { color: var(--lime); }
+		.intro-copy { max-width: 280px; margin: 0 0 2px; color: var(--muted); font-size: 12px; line-height: 1.6; text-align: right; }
+
+		.game-shell {
+			overflow: hidden;
+			border: 1px solid #39463a;
+			border-radius: 4px;
+			background: #20352c;
+			box-shadow: 0 22px 70px #0005;
+		}
+
+		.game-toolbar {
+			position: relative;
+			z-index: 1;
+			justify-content: space-between;
+			min-height: 58px;
+			padding: 0 18px;
+			border-bottom: 1px solid #ffffff16;
+			background: #18221b;
+		}
+
+		.toolbar-group { gap: 22px; }
+		.readout { gap: 9px; }
+		.readout-label { color: var(--muted); font-size: 9px; font-weight: 700; letter-spacing: 1.3px; text-transform: uppercase; }
+		.readout-value { min-width: 58px; font: 700 17px/1 "Barlow Condensed", sans-serif; font-variant-numeric: tabular-nums; }
+		#score { color: var(--lime); }
+		.readout-divider { width: 1px; height: 22px; background: var(--line); }
+		.game-toolbar .icon-button { width: 32px; height: 32px; font-size: 14px; }
+
+		.stage {
+			position: relative;
+			height: var(--canvas-height);
+			min-height: 330px;
+			max-height: 640px;
+			background: #9cb8a1;
+			isolation: isolate;
+		}
+
+		canvas { display: block; width: 100%; height: 100%; }
+
+		.stage-tag {
+			position: absolute;
+			top: 17px;
+			left: 18px;
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			color: #17231b;
+			font-size: 9px;
+			font-weight: 700;
+			letter-spacing: 1.6px;
+			text-transform: uppercase;
+			pointer-events: none;
+		}
+
+		.stage-tag::before { width: 19px; height: 1px; background: #17231b; content: ""; }
+
+		.overlay {
+			position: absolute;
+			inset: 0;
+			display: grid;
+			place-items: center;
+			padding: 20px;
+			background: #10181235;
+			opacity: 1;
+			transition: opacity .25s;
+		}
+
+		.overlay[hidden] { display: none; }
+
+		.overlay-panel {
+			width: min(390px, 100%);
+			padding: 27px 28px 25px;
+			border: 1px solid #e8f4d84d;
+			border-radius: 3px;
+			background: #142019eF;
+			text-align: center;
+			box-shadow: 0 18px 60px #0004;
+		}
+
+		.overlay-kicker { margin: 0 0 7px; color: var(--lime); font-size: 9px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+		.overlay h2 { margin: 0 0 8px; font: 800 36px/.95 "Barlow Condensed", sans-serif; text-transform: uppercase; }
+		.overlay p { margin: 0 auto 18px; color: #b7c1b4; font-size: 12px; line-height: 1.55; }
+
+		.primary-button {
+			min-height: 42px;
+			padding: 0 22px;
+			border: 0;
+			border-radius: 2px;
+			background: var(--lime);
+			color: #152017;
+			cursor: pointer;
+			font-size: 10px;
+			font-weight: 800;
+			letter-spacing: 1.2px;
+			text-transform: uppercase;
+			transition: background .2s, transform .2s;
+		}
+
+		.primary-button:hover { background: #e6ff9a; transform: translateY(-1px); }
+
+		.controls {
+			justify-content: space-between;
+			gap: 18px;
+			min-height: 63px;
+			padding: 0 18px;
+			border-top: 1px solid #ffffff15;
+			background: #18221b;
+		}
+
+		.control-list { display: flex; flex-wrap: wrap; gap: 17px; }
+		.control-item { gap: 7px; color: #abb6aa; font-size: 10px; }
+
+		kbd {
+			display: inline-grid;
+			min-width: 22px;
+			height: 21px;
+			place-items: center;
+			padding: 0 5px;
+			border: 1px solid #455145;
+			border-radius: 2px;
+			background: #202c22;
+			color: #e8eee1;
+			font: 600 10px "DM Sans", sans-serif;
+		}
+
+		.controls-hint { color: #718071; font-size: 9px; text-align: right; }
+
+		.touch-controls { display: none; }
+
+		@media (max-width: 700px) {
+			.app { width: calc(100% - 28px); padding-top: 17px; }
+			.topbar { margin-bottom: 23px; }
+			.status { font-size: 9px; }
+			.intro { align-items: start; }
+			.intro-copy { max-width: 145px; font-size: 10px; }
+			.stage { height: min(62vh, 540px); min-height: 300px; }
+			.game-toolbar { min-height: 53px; padding: 0 12px; }
+			.toolbar-group { gap: 12px; }
+			.readout { gap: 6px; }
+			.readout-label { font-size: 8px; letter-spacing: .8px; }
+			.readout-value { min-width: 44px; font-size: 15px; }
+			.readout-divider { height: 18px; }
+			.controls { min-height: 55px; padding: 0 12px; }
+			.control-list { gap: 9px; }
+			.control-item { font-size: 9px; }
+			.controls-hint { display: none; }
+			.touch-controls {
+				position: absolute;
+				right: 12px;
+				bottom: 12px;
+				left: 12px;
+				display: flex;
+				justify-content: space-between;
+				align-items: end;
+				pointer-events: none;
+			}
+			.touch-group { display: flex; gap: 8px; }
+			.touch-button {
+				width: 50px;
+				height: 48px;
+				border: 1px solid #fff9;
+				border-radius: 3px;
+				background: #142019aa;
+				color: white;
+				font-size: 16px;
+				touch-action: none;
+				pointer-events: auto;
+			}
+			.touch-button.jump { width: 76px; color: var(--lime); font-size: 10px; font-weight: 800; letter-spacing: 1px; }
+		}
+
+		@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+	</style>
+</head>
+<body>
+	<main class="app">
+		<header class="topbar">
+			<a class="brand" href="#" aria-label="Dirtline Startseite">
+				<span class="brand-mark" aria-hidden="true">↗</span>
+				<span class="brand-name">DIRT<span>LINE</span></span>
+			</a>
+			<div class="top-actions">
+				<span class="status">Freie Fahrt</span>
+				<button class="icon-button" id="resetButton" type="button" title="Neuer Lauf (R)" aria-label="Neuer Lauf">↻</button>
+			</div>
+		</header>
+
+		<section class="intro" aria-labelledby="pageTitle">
+			<div>
+				<p class="eyebrow">Trail session 01 / Alpenkamm</p>
+				<h1 id="pageTitle">FIND YOUR <span>LINE.</span></h1>
+			</div>
+			<p class="intro-copy">Speed aufnehmen. Sauber abheben.<br>Mit Style wieder landen.</p>
+		</section>
+
+		<section class="game-shell" aria-label="Bike-Spiel">
+			<div class="game-toolbar">
+				<div class="toolbar-group">
+					<div class="readout"><span class="readout-label">Punkte</span><strong class="readout-value" id="score">000000</strong></div>
+					<span class="readout-divider" aria-hidden="true"></span>
+					<div class="readout"><span class="readout-label">Combo</span><strong class="readout-value" id="combo">x1.0</strong></div>
+					<span class="readout-divider" aria-hidden="true"></span>
+					<div class="readout"><span class="readout-label">Distanz</span><strong class="readout-value" id="distance">0 m</strong></div>
+				</div>
+				<button class="icon-button" id="pauseButton" type="button" title="Pause (Esc)" aria-label="Spiel pausieren">Ⅱ</button>
+			</div>
+
+			<div class="stage" id="stage">
+				<canvas id="gameCanvas" aria-label="Downhill-Bike-Spiel. Mit Leertaste springen und mit links oder rechts Tricks drehen."></canvas>
+				<div class="stage-tag">Ridge run / 2.4 km</div>
+				<div class="overlay" id="overlay">
+					<div class="overlay-panel">
+						<p class="overlay-kicker" id="overlayKicker">Trail ist frei</p>
+						<h2 id="overlayTitle">Ready to ride?</h2>
+						<p id="overlayText">Halte dein Bike in der Luft im Gleichgewicht und lande deine Tricks sauber, um den Highscore zu knacken.</p>
+						<button class="primary-button" id="startButton" type="button">Run starten</button>
+					</div>
+				</div>
+				<div class="touch-controls" aria-label="Touch-Steuerung">
+					<div class="touch-group">
+						<button class="touch-button" data-key="ArrowLeft" type="button" aria-label="Nach links drehen">↶</button>
+						<button class="touch-button" data-key="ArrowRight" type="button" aria-label="Nach rechts drehen">↷</button>
+					</div>
+					<button class="touch-button jump" data-key="Space" type="button">JUMP</button>
+				</div>
+			</div>
+
+			<div class="controls">
+				<div class="control-list">
+					<span class="control-item"><kbd>LEER</kbd> Springen</span>
+					<span class="control-item"><kbd>←</kbd><kbd>→</kbd> Drehen</span>
+					<span class="control-item"><kbd>ESC</kbd> Pause</span>
+				</div>
+				<span class="controls-hint">Drehungen geben Punkte. Landung kontrollieren.</span>
+			</div>
+		</section>
+	</main>
+
+	<script>
+		(() => {
+			const canvas = document.querySelector("#gameCanvas");
+			const ctx = canvas.getContext("2d");
+			const stage = document.querySelector("#stage");
+			const overlay = document.querySelector("#overlay");
+			const overlayKicker = document.querySelector("#overlayKicker");
+			const overlayTitle = document.querySelector("#overlayTitle");
+			const overlayText = document.querySelector("#overlayText");
+			const startButton = document.querySelector("#startButton");
+			const pauseButton = document.querySelector("#pauseButton");
+			const scoreDisplay = document.querySelector("#score");
+			const comboDisplay = document.querySelector("#combo");
+			const distanceDisplay = document.querySelector("#distance");
+			const keys = new Set();
+			const TAU = Math.PI * 2;
+			const bike = { x: 0, air: 0, verticalSpeed: 0, angle: 0, spin: 0, grounded: true, rampLock: 0 };
+			const game = { state: "ready", score: 0, distance: 0, combo: 1, airtime: 0, lastSpin: 0, speed: 245, elapsed: 0, particles: [] };
+			let width = 0;
+			let height = 0;
+			let dpr = 1;
+			let lastTime = 0;
+			let playerScreenX = 0;
+
+			function resize() {
+				const bounds = stage.getBoundingClientRect();
+				dpr = Math.min(window.devicePixelRatio || 1, 2);
+				width = bounds.width;
+				height = bounds.height;
+				canvas.width = Math.round(width * dpr);
+				canvas.height = Math.round(height * dpr);
+				ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+				playerScreenX = width * (width < 600 ? 0.28 : 0.31);
+			}
+
+			function rampHeight(x) {
+				const phase = ((x % 1550) + 1550) % 1550;
+				if (phase < 310 || phase > 760) return 0;
+				return 76 * Math.sin(Math.PI * (phase - 310) / 450);
+			}
+
+			function terrainY(x) {
+				return height * 0.69 + Math.sin(x / 190) * 32 + Math.sin(x / 71) * 12 - rampHeight(x);
+			}
+
+			function terrainSlope(x) {
+				return (terrainY(x + 2) - terrainY(x - 2)) / 4;
+			}
+
+			function jump(power = 330) {
+				if (game.state !== "playing" || !bike.grounded) return;
+				bike.grounded = false;
+				bike.verticalSpeed = -power;
+				bike.air = 2;
+				bike.spin = 0;
+				bike.angle = Math.atan(terrainSlope(bike.x));
+				game.airtime = 0;
+				game.lastSpin = 0;
+			}
+
+			function startRun() {
+				game.state = "playing";
+				game.score = 0;
+				game.distance = 0;
+				game.combo = 1;
+				game.airtime = 0;
+				game.lastSpin = 0;
+				game.elapsed = 0;
+				game.particles = [];
+				bike.x = 0;
+				bike.air = 0;
+				bike.verticalSpeed = 0;
+				bike.spin = 0;
+				bike.grounded = true;
+				bike.rampLock = 0;
+				overlay.hidden = true;
+				lastTime = performance.now();
+			}
+
+			function setOverlay(kicker, title, text, button) {
+				overlayKicker.textContent = kicker;
+				overlayTitle.textContent = title;
+				overlayText.textContent = text;
+				startButton.textContent = button;
+				overlay.hidden = false;
+			}
+
+			function togglePause() {
+				if (game.state === "playing") {
+					game.state = "paused";
+					setOverlay("Kurze Verschnaufpause", "Trail angehalten", "Dein Lauf wartet genau hier auf dich.", "Weiterfahren");
+					pauseButton.textContent = "▶";
+					pauseButton.setAttribute("aria-label", "Spiel fortsetzen");
+				} else if (game.state === "paused") {
+					game.state = "playing";
+					overlay.hidden = true;
+					pauseButton.textContent = "Ⅱ";
+					pauseButton.setAttribute("aria-label", "Spiel pausieren");
+					lastTime = performance.now();
+				}
+			}
+
+			function crash() {
+				if (game.state !== "playing") return;
+				game.state = "crashed";
+				game.combo = 1;
+				pauseButton.textContent = "Ⅱ";
+				pauseButton.setAttribute("aria-label", "Spiel pausieren");
+				setOverlay("Autsch. Gute Linie, bis dahin.", "Ride it again.", `Du bist ${Math.floor(game.distance)} m gefahren und hast ${Math.floor(game.score).toLocaleString("de-DE")} Punkte gesammelt.`, "Nochmal fahren");
+			}
+
+			function update(dt) {
+				if (game.state !== "playing") return;
+				game.elapsed += dt;
+				bike.x += game.speed * dt;
+				game.distance = bike.x / 12;
+				bike.rampLock = Math.max(0, bike.rampLock - dt);
+
+				const phase = ((bike.x % 1550) + 1550) % 1550;
+				if (bike.grounded && bike.rampLock === 0 && phase > 405 && phase < 405 + game.speed * dt) {
+					bike.rampLock = 0.75;
+					jump(355);
+				}
+
+				if (keys.has("Space") && bike.grounded) jump(330);
+
+				if (!bike.grounded) {
+					game.airtime += dt;
+					bike.verticalSpeed += 790 * dt;
+					bike.air += bike.verticalSpeed * dt;
+					const direction = (keys.has("ArrowRight") || keys.has("KeyD") ? 1 : 0) - (keys.has("ArrowLeft") || keys.has("KeyA") ? 1 : 0);
+					  bike.spin += direction * 7.5 * dt;
+					  bike.angle += direction * 7.5 * dt;
+					if (bike.air <= 0 && bike.verticalSpeed > 0) {
+						bike.air = 0;
+						bike.grounded = true;
+						const fullRotations = Math.floor(Math.abs(bike.spin) / TAU);
+						const remainder = Math.atan2(Math.sin(bike.angle - terrainSlope(bike.x)), Math.cos(bike.angle - terrainSlope(bike.x)));
+						if (Math.abs(remainder) > 1.18) {
+							crash();
+						} else {
+							if (fullRotations > 0) {
+								const points = fullRotations * 250 * game.combo;
+								game.score += points;
+								game.combo = Math.min(5, game.combo + fullRotations * 0.5);
+								for (let index = 0; index < 12; index++) {
+									game.particles.push({ x: bike.x, y: terrainY(bike.x) - 30, life: 0.45 + Math.random() * 0.45, color: index % 2 ? "#d7ff5f" : "#ff744f", vx: (Math.random() - 0.5) * 160, vy: -Math.random() * 150 });
+								}
+							} else {
+								game.combo = 1;
+							}
+							bike.angle = Math.atan(terrainSlope(bike.x));
+						}
+					}
+				} else {
+					bike.angle = Math.atan(terrainSlope(bike.x));
+					game.score += dt * 12;
+				}
+
+				game.particles = game.particles.filter((particle) => particle.life > 0);
+				for (const particle of game.particles) {
+					particle.life -= dt;
+					particle.x += particle.vx * dt;
+					particle.y += particle.vy * dt;
+					particle.vy += 260 * dt;
+				}
+
+				scoreDisplay.textContent = Math.floor(game.score).toString().padStart(6, "0");
+				comboDisplay.textContent = `x${game.combo.toFixed(1)}`;
+				distanceDisplay.textContent = `${Math.floor(game.distance)} m`;
+			}
+
+			function drawMountainLayer(color, baseY, amplitude, scale, offset) {
+				ctx.beginPath();
+				ctx.moveTo(0, height);
+				ctx.lineTo(0, baseY);
+				for (let x = 0; x <= width + 10; x += 8) {
+					const worldX = x + bike.x * scale + offset;
+					const y = baseY + Math.sin(worldX / 165) * amplitude + Math.sin(worldX / 73) * amplitude * 0.28;
+					ctx.lineTo(x, y);
+				}
+				ctx.lineTo(width, height);
+				ctx.closePath();
+				ctx.fillStyle = color;
+				ctx.fill();
+			}
+
+			function drawTree(x, ground, scale, color) {
+				ctx.fillStyle = color;
+				ctx.beginPath();
+				ctx.moveTo(x, ground - 54 * scale);
+				ctx.lineTo(x - 17 * scale, ground - 21 * scale);
+				ctx.lineTo(x - 8 * scale, ground - 22 * scale);
+				ctx.lineTo(x - 24 * scale, ground - 4 * scale);
+				ctx.lineTo(x + 24 * scale, ground - 4 * scale);
+				ctx.lineTo(x + 8 * scale, ground - 22 * scale);
+				ctx.lineTo(x + 17 * scale, ground - 21 * scale);
+				ctx.closePath();
+				ctx.fill();
+			}
+
+			function drawBike() {
+				const ground = terrainY(bike.x);
+				const playerY = ground - 16 - bike.air;
+				ctx.save();
+				ctx.translate(playerScreenX, playerY);
+				ctx.rotate(bike.angle);
+
+				ctx.strokeStyle = "#17251e";
+				ctx.lineWidth = 3.5;
+				ctx.lineCap = "round";
+				ctx.beginPath();
+				ctx.arc(-24, 4, 12, 0, TAU);
+				ctx.arc(24, 4, 12, 0, TAU);
+				ctx.stroke();
+
+				ctx.strokeStyle = "#e8eee0";
+				ctx.lineWidth = 1.5;
+				for (const wheelX of [-24, 24]) {
+					ctx.beginPath();
+					ctx.moveTo(wheelX - 7, 4);
+					ctx.lineTo(wheelX + 7, 4);
+					ctx.moveTo(wheelX, -3);
+					ctx.lineTo(wheelX, 11);
+					ctx.stroke();
+				}
+
+				ctx.strokeStyle = "#d7ff5f";
+				ctx.lineWidth = 4;
+				ctx.beginPath();
+				ctx.moveTo(-24, 4);
+				ctx.lineTo(-8, -11);
+				ctx.lineTo(4, 4);
+				ctx.lineTo(-24, 4);
+				ctx.moveTo(-8, -11);
+				ctx.lineTo(16, -12);
+				ctx.lineTo(24, 4);
+				ctx.moveTo(4, 4);
+				ctx.lineTo(16, -12);
+				ctx.stroke();
+
+				ctx.strokeStyle = "#17251e";
+				ctx.lineWidth = 3;
+				ctx.beginPath();
+				ctx.moveTo(-13, -14);
+				ctx.lineTo(-4, -14);
+				ctx.moveTo(15, -15);
+				ctx.lineTo(22, -15);
+				ctx.moveTo(18, -12);
+				ctx.lineTo(22, -19);
+				ctx.stroke();
+
+				ctx.strokeStyle = "#ff744f";
+				ctx.lineWidth = 5;
+				ctx.beginPath();
+				ctx.moveTo(-7, -15);
+				ctx.lineTo(-1, -30);
+				ctx.lineTo(13, -28);
+				ctx.lineTo(18, -15);
+				ctx.stroke();
+
+				ctx.strokeStyle = "#17251e";
+				ctx.lineWidth = 4;
+				ctx.beginPath();
+				ctx.moveTo(0, -29);
+				ctx.lineTo(16, -13);
+				ctx.moveTo(0, -29);
+				ctx.lineTo(-12, -16);
+				ctx.stroke();
+
+				ctx.fillStyle = "#f2c99e";
+				ctx.beginPath();
+				ctx.arc(-3, -36, 6, 0, TAU);
+				ctx.fill();
+				ctx.fillStyle = "#17251e";
+				ctx.beginPath();
+				ctx.arc(-4, -38, 6, Math.PI, TAU);
+				ctx.lineTo(3, -36);
+				ctx.closePath();
+				ctx.fill();
+				ctx.restore();
+			}
+
+			function render() {
+				const sky = ctx.createLinearGradient(0, 0, 0, height);
+				sky.addColorStop(0, "#b8d2b7");
+				sky.addColorStop(0.66, "#d0d5ac");
+				sky.addColorStop(1, "#e4c78c");
+				ctx.fillStyle = sky;
+				ctx.fillRect(0, 0, width, height);
+
+				ctx.fillStyle = "#f5e1a8";
+				ctx.beginPath();
+				ctx.arc(width * 0.78, height * 0.2, 36, 0, TAU);
+				ctx.fill();
+
+				drawMountainLayer("#a4b99e", height * 0.45, 28, 0.08, 300);
+				drawMountainLayer("#829d87", height * 0.53, 38, 0.18, 30);
+				drawMountainLayer("#637e6b", height * 0.63, 27, 0.34, 400);
+
+				const cameraX = bike.x - playerScreenX;
+				for (let index = -2; index < width / 72 + 3; index++) {
+					const worldX = Math.floor(cameraX / 72) * 72 + index * 72;
+					const screenX = worldX - cameraX;
+					const ground = terrainY(worldX);
+					drawTree(screenX, ground + 5, 0.55 + ((index % 3 + 3) % 3) * 0.1, "#536f5d");
+				}
+
+				ctx.beginPath();
+				ctx.moveTo(0, height);
+				for (let screenX = 0; screenX <= width + 5; screenX += 4) {
+					ctx.lineTo(screenX, terrainY(cameraX + screenX));
+				}
+				ctx.lineTo(width, height);
+				ctx.closePath();
+				ctx.fillStyle = "#324d37";
+				ctx.fill();
+
+				ctx.beginPath();
+				for (let screenX = 0; screenX <= width + 5; screenX += 4) {
+					const y = terrainY(cameraX + screenX);
+					if (screenX === 0) ctx.moveTo(screenX, y);
+					else ctx.lineTo(screenX, y);
+				}
+				ctx.strokeStyle = "#d5dfad";
+				ctx.lineWidth = 4;
+				ctx.stroke();
+
+				const groundAtPlayer = terrainY(bike.x);
+				ctx.fillStyle = "#f2e7c2";
+				ctx.beginPath();
+				ctx.ellipse(playerScreenX, groundAtPlayer + 2, 34, 5, 0, 0, TAU);
+				ctx.fill();
+
+				for (const particle of game.particles) {
+					ctx.globalAlpha = Math.max(0, particle.life / 0.9);
+					ctx.fillStyle = particle.color;
+					ctx.beginPath();
+					ctx.arc(particle.x - cameraX, particle.y, 3, 0, TAU);
+					ctx.fill();
+				}
+				ctx.globalAlpha = 1;
+				drawBike();
+
+				if (bike.air > 20 && game.state === "playing") {
+					ctx.fillStyle = "#142019cc";
+					ctx.fillRect(width - 147, 18, 128, 31);
+					ctx.fillStyle = "#d7ff5f";
+					ctx.font = "700 10px 'DM Sans', sans-serif";
+					ctx.textAlign = "center";
+					ctx.fillText(`${Math.floor(Math.abs(bike.spin) / TAU)}× ROTATION`, width - 83, 38);
+				}
+
+				if (game.state === "ready") {
+					ctx.fillStyle = "#142019aa";
+					ctx.font = "700 10px 'DM Sans', sans-serif";
+					ctx.textAlign = "right";
+					ctx.fillText("KLEINE RAMPE VORAUS", width - 18, height - 19);
+				}
+			}
+
+			function frame(now) {
+				const dt = Math.min((now - lastTime) / 1000 || 0, 0.04);
+				lastTime = now;
+				update(dt);
+				render();
+				requestAnimationFrame(frame);
+			}
+
+			startButton.addEventListener("click", () => {
+				if (game.state === "paused") togglePause();
+				else startRun();
+			});
+			pauseButton.addEventListener("click", togglePause);
+			document.querySelector("#resetButton").addEventListener("click", startRun);
+
+			window.addEventListener("keydown", (event) => {
+				if (["Space", "ArrowLeft", "ArrowRight"].includes(event.code)) event.preventDefault();
+				if (event.code === "Escape") togglePause();
+				if (event.code === "KeyR") startRun();
+				keys.add(event.code);
+			});
+			window.addEventListener("keyup", (event) => keys.delete(event.code));
+			window.addEventListener("blur", () => keys.clear());
+
+			for (const button of document.querySelectorAll(".touch-button")) {
+				const key = button.dataset.key;
+				button.addEventListener("pointerdown", (event) => {
+					event.preventDefault();
+					keys.add(key);
+					button.setPointerCapture(event.pointerId);
+				});
+				const release = () => keys.delete(key);
+				button.addEventListener("pointerup", release);
+				button.addEventListener("pointercancel", release);
+				button.addEventListener("lostpointercapture", release);
+			}
+
+			new ResizeObserver(resize).observe(stage);
+			resize();
+			requestAnimationFrame((now) => { lastTime = now; frame(now); });
+		})();
+	</script>
+</body>
+</html>
